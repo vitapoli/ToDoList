@@ -1,35 +1,26 @@
-# Зависимости
-node_modules/
-bower_components/
-vendor/
+# Python
+  __pycache__/
+  *.pyc
+  *.pyo
 
-# Сборка/дист
-dist/
-build/
-.next/
-out/
+# База данных
+  *.db
+  *.sqlite3
 
-# Переменные окружения и секреты
-.env
-.env.local
-.env.*.local
-*.key
-*.pem
+# Аудио-загрузки пользователей
+  uploads/
+
+# Переменные окружения
+  .env
+  .env.local
+  .env.*.local
 
 # ОС и IDE
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-*.swp
+  .DS_Store
+  Thumbs.db
+  .idea/
+  .vscode/
+  *.swp
 
-# Логи и кэш
-*.log
-npm-debug.log*
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.db
-*.sqlite3
+# Логи
+  *.log
