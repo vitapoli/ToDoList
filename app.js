@@ -1,7 +1,6 @@
 const state = {
   token: localStorage.getItem("todo_auth_token") || "",
   currentUsername: localStorage.getItem("todo_auth_username") || "",
-  users: [],
   tasks: [],
   draggedTaskId: null,
   listFilterStatus: "all",
@@ -15,21 +14,12 @@ const elements = {
   authPassphraseInput: document.getElementById("authPassphraseInput"),
   currentUserLabel: document.getElementById("currentUserLabel"),
   logoutBtn: document.getElementById("logoutBtn"),
-  logoutBtnModal: document.getElementById("logoutBtnModal"),
-
-  userForm: document.getElementById("userForm"),
-  userNameInput: document.getElementById("userNameInput"),
-  usersList: document.getElementById("usersList"),
-  assigneeInput: document.getElementById("assigneeInput"),
-
-  openUsersModalBtn: document.getElementById("openUsersModalBtn"),
-  usersModal: document.getElementById("usersModal"),
-  closeUsersModalBtn: document.getElementById("closeUsersModalBtn"),
 
   taskForm: document.getElementById("taskForm"),
   titleInput: document.getElementById("titleInput"),
   descriptionInput: document.getElementById("descriptionInput"),
   deadlineInput: document.getElementById("deadlineInput"),
+  initialCommentInput: document.getElementById("initialCommentInput"),
   openTaskModalBtn: document.getElementById("openTaskModalBtn"),
   taskModal: document.getElementById("taskModal"),
   closeTaskModalBtn: document.getElementById("closeTaskModalBtn"),
@@ -68,12 +58,8 @@ function init() {
 function bindEvents() {
   elements.authForm.addEventListener("submit", onAuthSubmit);
   elements.logoutBtn.addEventListener("click", logout);
-  elements.logoutBtnModal.addEventListener("click", logout);
 
-  elements.userForm.addEventListener("submit", onCreateUser);
   elements.taskForm.addEventListener("submit", onCreateTask);
-  elements.openUsersModalBtn.addEventListener("click", openUsersModal);
-  elements.closeUsersModalBtn.addEventListener("click", closeUsersModal);
   elements.openTaskModalBtn.addEventListener("click", openTaskModal);
   elements.closeTaskModalBtn.addEventListener("click", closeTaskModal);
   elements.boardViewBtn.addEventListener("click", () => setView("board"));
@@ -89,13 +75,9 @@ function bindEvents() {
   elements.taskModal.addEventListener("click", (event) => {
     if (event.target === elements.taskModal) closeTaskModal();
   });
-  elements.usersModal.addEventListener("click", (event) => {
-    if (event.target === elements.usersModal) closeUsersModal();
-  });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     closeTaskModal();
-    closeUsersModal();
   });
 
   [elements.todoColumn, elements.inProgressColumn, elements.doneColumn].forEach((zone) => {
@@ -136,9 +118,7 @@ async function onAuthSubmit(event) {
 }
 
 async function bootstrap() {
-  const [users, tasks] = await Promise.all([api("/api/users"), api("/api/tasks")]);
-  state.users = users;
-  state.tasks = tasks;
+  state.tasks = await api("/api/tasks");
   syncAuthUi();
   renderAll();
 }
@@ -148,7 +128,6 @@ function syncAuthUi() {
   elements.appShell.classList.toggle("hidden", !isLoggedIn);
   elements.authModal.classList.toggle("hidden", isLoggedIn);
   elements.logoutBtn.classList.toggle("hidden", !isLoggedIn);
-  elements.logoutBtnModal.classList.toggle("hidden", !isLoggedIn);
   elements.currentUserLabel.classList.toggle("hidden", !isLoggedIn);
   elements.currentUserLabel.textContent = isLoggedIn ? `Пользователь: ${state.currentUsername}` : "";
 }
@@ -172,20 +151,15 @@ async function logout() {
   showAuthOnly();
 }
 
-async function onCreateUser(event) {
-  event.preventDefault();
-  const name = elements.userNameInput.value.trim();
-  if (!name) return;
-  await api("/api/users", { method: "POST", body: JSON.stringify({ name }) });
-  elements.userForm.reset();
-  closeUsersModal();
-  await refreshUsers();
-}
-
 async function onCreateTask(event) {
   event.preventDefault();
   const title = elements.titleInput.value.trim();
   if (!title) return;
+
+  const initialComment = elements.initialCommentInput.value.trim();
+  const comments = initialComment
+    ? [{ id: crypto.randomUUID(), text: initialComment, createdAt: new Date().toISOString() }]
+    : [];
 
   await api("/api/tasks", {
     method: "POST",
@@ -193,10 +167,9 @@ async function onCreateTask(event) {
       title,
       description: elements.descriptionInput.value.trim(),
       deadline: elements.deadlineInput.value || null,
-      assigneeId: elements.assigneeInput.value || null,
       status: "todo",
       done: false,
-      comments: [],
+      comments,
       attachments: [],
     }),
   });
@@ -204,15 +177,6 @@ async function onCreateTask(event) {
   elements.taskForm.reset();
   closeTaskModal();
   await refreshTasks();
-}
-
-async function deleteUser(userId) {
-  try {
-    await api(`/api/users/${userId}`, { method: "DELETE" });
-    await Promise.all([refreshUsers(), refreshTasks()]);
-  } catch (error) {
-    alert(error.message || "Не удалось удалить пользователя");
-  }
 }
 
 async function deleteTask(taskId) {
@@ -252,7 +216,7 @@ async function updateTask(taskId, patch) {
 async function markTaskDone(taskId) {
   const task = state.tasks.find((item) => item.id === taskId);
   if (!task) return;
-  await updateTask(taskId, { ...task, done: true, status: "done" });
+  await updateTask(taskId, { done: true, status: "done" });
 }
 
 async function addComment(taskId, text) {
@@ -290,22 +254,6 @@ function openTaskModal() {
 function closeTaskModal() {
   elements.taskModal.classList.add("hidden");
 }
-function openUsersModal() {
-  elements.usersModal.classList.remove("hidden");
-  elements.userNameInput.focus();
-}
-function closeUsersModal() {
-  elements.usersModal.classList.add("hidden");
-}
-
-async function refreshUsers() {
-  state.users = await api("/api/users");
-  renderUsers();
-  renderAssigneeOptions();
-  renderBoard();
-  renderList();
-}
-
 async function refreshTasks() {
   state.tasks = await api("/api/tasks");
   renderBoard();
@@ -313,35 +261,8 @@ async function refreshTasks() {
 }
 
 function renderAll() {
-  renderUsers();
-  renderAssigneeOptions();
   renderBoard();
   renderList();
-}
-
-function renderUsers() {
-  elements.usersList.innerHTML = "";
-  state.users.forEach((user) => {
-    const li = document.createElement("li");
-    li.textContent = user.name;
-    const deleteButton = document.createElement("button");
-    deleteButton.textContent = "Удалить";
-    deleteButton.addEventListener("click", () => deleteUser(user.id));
-    li.appendChild(deleteButton);
-    elements.usersList.appendChild(li);
-  });
-}
-
-function renderAssigneeOptions() {
-  const previousValue = elements.assigneeInput.value;
-  elements.assigneeInput.innerHTML = '<option value="">Без исполнителя</option>';
-  state.users.forEach((user) => {
-    const option = document.createElement("option");
-    option.value = user.id;
-    option.textContent = user.name;
-    elements.assigneeInput.appendChild(option);
-  });
-  elements.assigneeInput.value = previousValue;
 }
 
 function renderBoard() {
@@ -376,7 +297,6 @@ function renderList() {
       <td>${renderStatusText(task.status)}</td>
       <td>${escapeHtml(task.title)}</td>
       <td>${task.deadline ? new Date(task.deadline).toLocaleString() : "-"}</td>
-      <td>${escapeHtml(getUserName(task.assigneeId) || "-")}</td>
       <td><input type="checkbox" ${task.done ? "checked" : ""}></td>
     `;
     const checkbox = tr.querySelector("input");
@@ -397,7 +317,6 @@ function createTaskCard(task) {
   card.querySelector(".deadline").textContent = task.deadline
     ? `Дедлайн: ${new Date(task.deadline).toLocaleString()}`
     : "Дедлайн: не указан";
-  card.querySelector(".assignee").textContent = `Исполнитель: ${getUserName(task.assigneeId) || "не назначен"}`;
 
   const markDoneBtn = card.querySelector(".mark-done-btn");
   markDoneBtn.disabled = task.done;
@@ -411,17 +330,9 @@ function createTaskCard(task) {
   const editBtn = card.querySelector(".edit-btn");
   const editForm = card.querySelector(".edit-form");
   const cancelEditBtn = card.querySelector(".cancel-edit-btn");
-  const assigneeSelect = editForm.elements.editAssignee;
-  state.users.forEach((user) => {
-    const option = document.createElement("option");
-    option.value = user.id;
-    option.textContent = user.name;
-    assigneeSelect.appendChild(option);
-  });
   editForm.elements.editTitle.value = task.title;
   editForm.elements.editDescription.value = task.description || "";
   editForm.elements.editDeadline.value = formatForDatetimeInput(task.deadline);
-  editForm.elements.editAssignee.value = task.assigneeId || "";
   editForm.elements.editStatus.value = task.status;
 
   const saveFromEditForm = async () => {
@@ -433,7 +344,6 @@ function createTaskCard(task) {
       title,
       description: editForm.elements.editDescription.value.trim(),
       deadline: editForm.elements.editDeadline.value || null,
-      assigneeId: editForm.elements.editAssignee.value || null,
       status,
       done: status === "done",
     });
@@ -550,10 +460,6 @@ function renderStatusText(status) {
   if (status === "todo") return "Сделать";
   if (status === "in-progress") return "В работе";
   return "Сделано";
-}
-
-function getUserName(userId) {
-  return state.users.find((user) => user.id === userId)?.name ?? null;
 }
 
 async function api(url, options = {}) {

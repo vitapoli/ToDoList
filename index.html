@@ -15,11 +15,10 @@
         <div class="brand-dot"></div>
         <div>
           <h1>To Do Board</h1>
-          <p>Общая доска задач</p>
+          <p>Личная доска задач</p>
         </div>
       </div>
       <div class="topbar-actions">
-        <button id="openUsersModalBtn" class="btn" type="button">Пользователи <span>+</span></button>
         <button id="openTaskModalBtn" class="btn btn-primary create-btn" type="button">Создать <span>+</span></button>
         <span id="currentUserLabel" class="user-pill hidden"></span>
         <button id="logoutBtn" class="btn logout-btn hidden" type="button">Выйти</button>
@@ -83,7 +82,6 @@
                   <th>Статус</th>
                   <th>Название</th>
                   <th>Дедлайн</th>
-                  <th>Исполнитель</th>
                   <th>Выполнено</th>
                 </tr>
               </thead>
@@ -122,31 +120,18 @@
           Дедлайн
           <input id="deadlineInput" type="datetime-local">
         </label>
-        <label>
-          Назначить
-          <select id="assigneeInput">
-            <option value="">Без исполнителя</option>
-          </select>
-        </label>
+        <details class="additions">
+          <summary>Дополнения</summary>
+          <div class="addition-item">
+            <label>Комментарий</label>
+            <input id="initialCommentInput" type="text" placeholder="Добавить комментарий">
+          </div>
+        </details>
         <button class="btn btn-primary" type="submit">Создать задачу</button>
       </form>
     </section>
   </div>
 
-  <div id="usersModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="usersModalTitle">
-    <section class="modal">
-      <header class="modal-header">
-        <h2 id="usersModalTitle">Пользователи</h2>
-        <button id="closeUsersModalBtn" class="ghost-btn" type="button" title="Закрыть">✕</button>
-      </header>
-      <form id="userForm" class="stack">
-        <input id="userNameInput" type="text" placeholder="Имя пользователя" required>
-        <button class="btn btn-primary" type="submit">Добавить</button>
-      </form>
-      <ul id="usersList" class="users-list"></ul>
-      <button id="logoutBtnModal" class="btn logout-btn hidden" type="button">Выйти из аккаунта</button>
-    </section>
-  </div>
 
   <template id="taskCardTemplate">
     <article class="task-card" draggable="true">
@@ -161,7 +146,6 @@
       <p class="task-description"></p>
       <p class="task-meta">
         <span class="deadline"></span>
-        <span class="assignee"></span>
       </p>
       <form class="edit-form hidden stack-sm">
         <input type="text" name="editTitle" placeholder="Название" required>
@@ -169,12 +153,6 @@
         <label>
           Дедлайн
           <input type="datetime-local" name="editDeadline">
-        </label>
-        <label>
-          Исполнитель
-          <select name="editAssignee">
-            <option value="">Без исполнителя</option>
-          </select>
         </label>
         <label>
           Статус
