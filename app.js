@@ -225,12 +225,6 @@ async function addComment(taskId, text) {
   await updateTask(taskId, { ...task, comments: [...task.comments, { id: crypto.randomUUID(), text, createdAt: new Date().toISOString() }] });
 }
 
-async function addAttachment(taskId, attachment) {
-  const task = state.tasks.find((item) => item.id === taskId);
-  if (!task) return;
-  await updateTask(taskId, { ...task, attachments: [...task.attachments, attachment] });
-}
-
 function setView(type) {
   const isBoard = type === "board";
   elements.boardView.classList.toggle("hidden", !isBoard);
@@ -383,64 +377,6 @@ function createTaskCard(task) {
     await addComment(task.id, text);
   });
 
-  const attachmentsList = card.querySelector(".attachments-list");
-  task.attachments.forEach((item) => {
-    if (item.type !== "audio") return;
-    const div = document.createElement("div");
-    div.className = "attachment-item";
-    const label = document.createElement("strong");
-    label.textContent = "Аудио:";
-    const audio = document.createElement("audio");
-    audio.controls = true;
-    audio.preload = "none";
-    audio.src = item.url;
-    div.appendChild(label);
-    div.appendChild(document.createElement("br"));
-    div.appendChild(audio);
-    attachmentsList.appendChild(div);
-  });
-
-  const attachForm = card.querySelector(".attach-form");
-  const startRecordBtn = card.querySelector(".start-record-btn");
-  const stopRecordBtn = card.querySelector(".stop-record-btn");
-  const recordStatus = card.querySelector(".record-status");
-  let recorder = null;
-  let recorderStream = null;
-  let recorderChunks = [];
-  attachForm.addEventListener("submit", (event) => event.preventDefault());
-
-  startRecordBtn.addEventListener("click", async () => {
-    try {
-      recorderStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recorder = new MediaRecorder(recorderStream);
-      recorderChunks = [];
-      recorder.addEventListener("dataavailable", (evt) => {
-        if (evt.data.size > 0) recorderChunks.push(evt.data);
-      });
-      recorder.addEventListener("stop", async () => {
-        const blob = new Blob(recorderChunks, { type: recorder.mimeType || "audio/webm" });
-        const upload = await api("/api/uploads/audio", {
-          method: "POST",
-          body: JSON.stringify({ dataUrl: await blobToDataUrl(blob), mimeType: blob.type || "audio/webm" }),
-        });
-        await addAttachment(task.id, { id: crypto.randomUUID(), type: "audio", name: "voice-message", url: upload.url });
-        recorderStream.getTracks().forEach((track) => track.stop());
-      });
-      recorder.start();
-      startRecordBtn.disabled = true;
-      stopRecordBtn.disabled = false;
-      recordStatus.textContent = "Идет запись...";
-    } catch (error) {
-      alert("Нет доступа к микрофону.");
-    }
-  });
-  stopRecordBtn.addEventListener("click", () => {
-    if (!recorder || recorder.state !== "recording") return;
-    recorder.stop();
-    startRecordBtn.disabled = false;
-    stopRecordBtn.disabled = true;
-    recordStatus.textContent = "Не записывается";
-  });
 
   card.addEventListener("dragstart", (event) => {
     if (event.target.closest("button, input, textarea, select, details, summary, form, audio, a")) {
@@ -474,15 +410,6 @@ async function api(url, options = {}) {
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
-}
-
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 }
 
 function formatForDatetimeInput(value) {
