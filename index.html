@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4b7bec">
+  <title>To Do Board</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div>
+          <h1>To Do Board</h1>
+          <p>Общая доска задач</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="openUsersModalBtn" class="btn" type="button">Пользователи <span>+</span></button>
+        <button id="openTaskModalBtn" class="btn btn-primary create-btn" type="button">Создать <span>+</span></button>
+        <span id="currentUserLabel" class="user-pill hidden"></span>
+        <button id="logoutBtn" class="btn logout-btn hidden" type="button">Выйти</button>
+        <button id="boardViewBtn" class="btn btn-primary is-active">Доска</button>
+        <button id="listViewBtn" class="btn">Список</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="content">
+        <div id="boardView" class="board-view">
+          <article class="column" data-status="todo">
+            <header>
+              <h3>Сделать</h3>
+              <div class="column-actions">
+                <span id="countTodo" class="counter">0</span>
+                <button id="clearTodoBtn" class="ghost-btn clear-column-btn" type="button" title="Очистить колонку">🗑</button>
+              </div>
+            </header>
+            <div class="dropzone" id="todoColumn"></div>
+          </article>
+
+          <article class="column" data-status="in-progress">
+            <header>
+              <h3>В работе</h3>
+              <div class="column-actions">
+                <span id="countProgress" class="counter">0</span>
+                <button id="clearProgressBtn" class="ghost-btn clear-column-btn" type="button" title="Очистить колонку">🗑</button>
+              </div>
+            </header>
+            <div class="dropzone" id="inProgressColumn"></div>
+          </article>
+
+          <article class="column" data-status="done">
+            <header>
+              <h3>Сделано</h3>
+              <div class="column-actions">
+                <span id="countDone" class="counter">0</span>
+                <button id="clearDoneBtn" class="ghost-btn clear-column-btn" type="button" title="Очистить колонку">🗑</button>
+              </div>
+            </header>
+            <div class="dropzone" id="doneColumn"></div>
+          </article>
+        </div>
+
+        <div id="listView" class="list-view hidden">
+          <div class="card">
+            <h2>Все задачи списком</h2>
+            <div class="list-filters">
+              <label for="statusFilterSelect">Фильтр по статусу:</label>
+              <select id="statusFilterSelect">
+                <option value="all">Все</option>
+                <option value="todo">Сделать</option>
+                <option value="in-progress">В работе</option>
+                <option value="done">Сделано</option>
+              </select>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Статус</th>
+                  <th>Название</th>
+                  <th>Дедлайн</th>
+                  <th>Исполнитель</th>
+                  <th>Выполнено</th>
+                </tr>
+              </thead>
+              <tbody id="tasksTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="authModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <section class="modal">
+      <header class="modal-header">
+        <h2 id="authModalTitle">Вход в личную доску</h2>
+      </header>
+      <form id="authForm" class="stack">
+        <input id="authUsernameInput" type="text" placeholder="Имя пользователя" required>
+        <input id="authPassphraseInput" type="password" placeholder="Кодовое слово" required>
+        <button class="btn btn-primary" type="submit">Войти</button>
+      </form>
+      <p class="auth-note">Если имя новое, доска создастся автоматически.</p>
+    </section>
+  </div>
+
+  <div id="taskModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+    <section class="modal">
+      <header class="modal-header">
+        <h2 id="taskModalTitle">Новая задача</h2>
+        <button id="closeTaskModalBtn" class="ghost-btn" type="button" title="Закрыть">✕</button>
+      </header>
+      <form id="taskForm" class="stack">
+        <input id="titleInput" type="text" placeholder="Название задачи" required>
+        <textarea id="descriptionInput" placeholder="Описание"></textarea>
+        <label>
+          Дедлайн
+          <input id="deadlineInput" type="datetime-local">
+        </label>
+        <label>
+          Назначить
+          <select id="assigneeInput">
+            <option value="">Без исполнителя</option>
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit">Создать задачу</button>
+      </form>
+    </section>
+  </div>
+
+  <div id="usersModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="usersModalTitle">
+    <section class="modal">
+      <header class="modal-header">
+        <h2 id="usersModalTitle">Пользователи</h2>
+        <button id="closeUsersModalBtn" class="ghost-btn" type="button" title="Закрыть">✕</button>
+      </header>
+      <form id="userForm" class="stack">
+        <input id="userNameInput" type="text" placeholder="Имя пользователя" required>
+        <button class="btn btn-primary" type="submit">Добавить</button>
+      </form>
+      <ul id="usersList" class="users-list"></ul>
+      <button id="logoutBtnModal" class="btn logout-btn hidden" type="button">Выйти из аккаунта</button>
+    </section>
+  </div>
+
+  <template id="taskCardTemplate">
+    <article class="task-card" draggable="true">
+      <div class="task-head">
+        <h4 class="task-title"></h4>
+        <div class="task-actions">
+          <button class="ghost-btn edit-btn" type="button" title="Редактировать">✎</button>
+          <button class="ghost-btn mark-done-btn" type="button" title="Отметить выполненной">✔</button>
+          <button class="ghost-btn delete-btn" type="button" title="Удалить">✕</button>
+        </div>
+      </div>
+      <p class="task-description"></p>
+      <p class="task-meta">
+        <span class="deadline"></span>
+        <span class="assignee"></span>
+      </p>
+      <form class="edit-form hidden stack-sm">
+        <input type="text" name="editTitle" placeholder="Название" required>
+        <textarea name="editDescription" placeholder="Описание"></textarea>
+        <label>
+          Дедлайн
+          <input type="datetime-local" name="editDeadline">
+        </label>
+        <label>
+          Исполнитель
+          <select name="editAssignee">
+            <option value="">Без исполнителя</option>
+          </select>
+        </label>
+        <label>
+          Статус
+          <select name="editStatus">
+            <option value="todo">Сделать</option>
+            <option value="in-progress">В работе</option>
+            <option value="done">Сделано</option>
+          </select>
+        </label>
+        <div class="edit-actions">
+          <button class="btn btn-primary" type="submit">Сохранить</button>
+          <button class="btn cancel-edit-btn" type="button">Отмена</button>
+        </div>
+      </form>
+
+      <details class="additions">
+        <summary>Дополнения</summary>
+
+        <details class="addition-item">
+          <summary>Комментарии</summary>
+          <ul class="comments-list"></ul>
+          <form class="comment-form">
+            <input type="text" name="comment" placeholder="Добавить комментарий" required>
+            <button class="btn" type="submit">Добавить</button>
+          </form>
+        </details>
+
+        <details class="addition-item">
+          <summary>Аудио сообщения</summary>
+          <div class="attachments-list"></div>
+          <form class="attach-form stack-sm">
+            <div class="audio-recorder">
+              <button class="btn start-record-btn" type="button">Записать голосовое</button>
+              <button class="btn stop-record-btn" type="button" disabled>Стоп и сохранить</button>
+              <span class="record-status">Не записывается</span>
+            </div>
+          </form>
+        </details>
+      </details>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

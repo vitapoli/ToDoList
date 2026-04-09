@@ -1,0 +1,28 @@
+# Зависимости
+node_modules/
+bower_components/
+vendor/
+
+# Сборка/дист
+dist/
+build/
+.next/
+out/
+
+# Переменные окружения и секреты
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# ОС и IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Логи и кэш
+*.log
+npm-debug.log*
