@@ -26,3 +26,10 @@ Thumbs.db
 # Логи и кэш
 *.log
 npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.sqlite3
