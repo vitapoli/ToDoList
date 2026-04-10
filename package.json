@@ -1,0 +1,24 @@
+{
+  "name": "todo_app",
+  "version": "1.0.0",
+  "description": "Веб-приложение задач: у каждого пользователя своя доска, данные в SQLite на сервере.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitapoli/ToDoList.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vitapoli/ToDoList/issues"
+  },
+  "homepage": "https://github.com/vitapoli/ToDoList#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}
